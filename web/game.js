@@ -27,7 +27,7 @@ var get_height = function(x) {
 
 // Game objects
 var spaceship = {
-    speed: 256, // vertical movement speed
+    speed: 4, // vertical movement speed
     x: 20,
     y: 0
 }
@@ -90,7 +90,7 @@ var render = function () {
 var update = function(modifier) {
 	scrollx += modifier;
     //console.log("x: " + scrollx);
-	spaceship.y += ((40 in keysDown) - (38 in keysDown)) * 4 * modifier;
+	spaceship.y += ((40 in keysDown) - (38 in keysDown)) * spaceship.speed * modifier;
 	if (spaceship.y < 0)
 	    spaceship.y = 0;
 	else if (spaceship.y > canvas.height - 150)
