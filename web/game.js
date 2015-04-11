@@ -13,16 +13,51 @@ bgImage.onload = function () {
 };
 bgImage.src = "images/outer-space.jpg";
 
-BLOCK_SIZE = 10
+var turretReady = false
+var turretImage = new Image();
+turretImage.onload = function () {
+	turretReady = true;
+};
+turretImage.src = "images/turret.png";
+
+BLOCK_SIZE = 30
 MAX_TERRAIN_HEIGHT = 150
 MIN_TERRAIN_HEIGHT = 40
 
+TURRET_HEIGHT = 20
+TURRET_WIDTH = 20
+TURRET_BASELINE = 10
+TURRET_PROBABILITY = 0.01
+MIN_TURRET_DISTANCE = 150
+MAX_TURRETS = 20
+
+AIM_X = 500
+AIM_Y = 500
+
 height = {}
+turrets = []
 
 var get_height = function(x) {
 	if (height[x]) return height[x];
 	height[x] = canvas.height - (Math.random() * (MAX_TERRAIN_HEIGHT - MIN_TERRAIN_HEIGHT) + MIN_TERRAIN_HEIGHT);
 	return height[x]
+}
+
+var update_turrets = function() {
+	console.log(turrets);
+	// Any turret that's out of picture?
+	while (turrets.length > 0 && turrets[0] < scrollx) {
+		turrets.splice(0, 1);
+	}
+
+	if (turrets.length > 0 && turrets[turrets.length-1] + MIN_TURRET_DISTANCE > scrollx + canvas.width) {
+		return;
+	}
+
+	if (turrets.length < MAX_TURRETS && Math.random() < TURRET_PROBABILITY) {
+		turrets.splice(turrets.length, 0, scrollx + canvas.width);
+	}
+
 }
 
 // Game objects
@@ -51,6 +86,29 @@ addEventListener("keyup", function (e) {
     delete keysDown[e.keyCode];
 }, false);
 
+var draw_turret = function(x, y) {
+	ctx.beginPath();
+	ctx.moveTo(x - TURRET_WIDTH / 2, y);
+	ctx.lineTo(x - TURRET_WIDTH / 2 + 5, y - TURRET_HEIGHT);
+	ctx.lineTo(x + TURRET_WIDTH / 2 - 5, y - TURRET_HEIGHT);
+	ctx.lineTo(x + TURRET_WIDTH / 2, y);
+	ctx.closePath();
+
+	var gradient = ctx.createLinearGradient(0,y,0,y - TURRET_HEIGHT);
+	gradient.addColorStop("0","blue");
+	gradient.addColorStop("1.0","magenta");
+	ctx.fillStyle=gradient;
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.moveTo(x, y - TURRET_HEIGHT);
+	ctx.lineTo(x, y - TURRET_HEIGHT - 20);
+	ctx.closePath();
+	ctx.strokeStyle = "red";
+	ctx.stroke();
+
+}
+
 // Draw everything
 var render = function () {
 	if (bgReady) {
@@ -61,13 +119,13 @@ var render = function () {
 	adj = Math.floor(scrollx / BLOCK_SIZE) * BLOCK_SIZE
 	ctx.moveTo(-scrollx, canvas.height)
 
-	for (x = adj; x <= canvas.width + adj + BLOCK_SIZE; x += BLOCK_SIZE) {
+	for (x = adj; x <= canvas.width + adj + BLOCK_SIZE*2; x += BLOCK_SIZE) {
 		ctx.lineTo(x - scrollx, get_height(x))
 
 //		ctx.quadraticCurveTo(x - scrollx - BLOCK_SIZE / 2, (get_height(x) + get_height(x - BLOCK_SIZE)) * 0.8, x - scrollx, get_height(x))
 	}
 
-	ctx.lineTo(canvas.width + adj + BLOCK_SIZE - scrollx, canvas.height);
+	ctx.lineTo(canvas.width + adj + BLOCK_SIZE*2 - scrollx, canvas.height);
 	ctx.closePath();
 
 	var gradient=ctx.createLinearGradient(0,canvas.height,0,canvas.height-MAX_TERRAIN_HEIGHT);
@@ -85,12 +143,21 @@ var render = function () {
 	if (spaceshipReady) {
 	    ctx.drawImage(spaceshipImage, spaceship.x, spaceship.y);
 	}
-};
+
+	for(i = 0; i < turrets.length; i++) {
+		x1 = Math.floor(turrets[i] / BLOCK_SIZE) * BLOCK_SIZE;
+		x2 = Math.floor(turrets[i] / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE;
+		y = (get_height(x2) - get_height(x1)) * (turrets[i] - x1) / BLOCK_SIZE + get_height(x1);
+		draw_turret(turrets[i] - scrollx, y + TURRET_BASELINE);
+	}
+}
 
 var update = function(modifier) {
 	scrollx += modifier;
-    //console.log("x: " + scrollx);
 	spaceship.y += ((40 in keysDown) - (38 in keysDown)) * spaceship.speed * modifier;
+
+    update_turrets();
+
 	if (spaceship.y < 0)
 	    spaceship.y = 0;
 	else if (spaceship.y > canvas.height - 150)
