@@ -16,9 +16,16 @@ bgImage.src = "images/outer-space.jpg";
 var turretReady = false
 var turretImage = new Image();
 turretImage.onload = function () {
-	turretReady = true;
+    turretReady = true;
 };
 turretImage.src = "images/turret.png";
+
+var explosionReady = false
+var explosionImage = new Image();
+explosionImage.onload = function () {
+    turretReady = true;
+};
+explosionImage.src = "images/explosion.gif";
 
 BLOCK_SIZE = 100
 MAX_TERRAIN_HEIGHT = 150
@@ -112,7 +119,11 @@ var laser = {
     x: -1000,
     y: 0,
     rechargeCountdown: 0,
-    rechargeCost: 1
+    rechargeCost: 1.2
+}
+
+var explosion = {
+    object: null,
 }
 
 // Handle keyboard controls
@@ -156,6 +167,10 @@ var get_ground_height = function(x) {
 	return y;
 }
 
+var explode = function(obj) {
+    explosion.object = obj;
+}
+
 // Draw everything
 var render = function () {
 	if (bgReady) {
@@ -189,7 +204,7 @@ var render = function () {
 	    ctx.drawImage(spaceshipImage, spaceship.x, spaceship.y);
 	}
 
-    //  Turrets
+    // Turrets
 	for(i = 0; i < turrets.length; i++) {
 		y = get_ground_height(turrets[i])
 	    draw_turret(turrets[i] - scrollx, y + TURRET_BASELINE);
@@ -207,6 +222,13 @@ var render = function () {
 	ctx.strokeStyle = "green";
 	ctx.lineWidth = 2;
 	ctx.stroke();
+
+    // Explosion
+	if (explosion.object == null) { }
+	else {
+	    ctx.drawImage(explosionImage, explosion.object.x, explosion.object.y);
+	    explosion.object = null;
+	}
 };
 
 var update = function(modifier) {
@@ -221,6 +243,10 @@ var update = function(modifier) {
 	    spaceship.y = 0;
 	else if (spaceship.y > canvas.height - 150)
 	    spaceship.y = canvas.height - 150;
+
+	if (spaceship.y > get_ground_height(spaceship.x + scrollx) - 150) {
+	    explode(spaceship);
+	}
 
 	if (laser.rechargeCountdown <= 0 && (32 in keysDown)) {
 	    laser.x = spaceship.x + 50;
