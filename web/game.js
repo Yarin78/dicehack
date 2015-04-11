@@ -13,7 +13,7 @@ bgImage.onload = function () {
 };
 bgImage.src = "images/outer-space.jpg";
 
-BLOCK_SIZE = 10
+BLOCK_SIZE = 100
 MAX_TERRAIN_HEIGHT = 150
 MIN_TERRAIN_HEIGHT = 40
 
@@ -27,7 +27,7 @@ var get_height = function(x) {
 
 // Game objects
 var spaceship = {
-    speed: 4, // vertical movement speed
+    speed: 200, // vertical movement speed
     x: 20,
     y: 0
 }
@@ -39,6 +39,14 @@ spaceshipImage.onload = function () {
     spaceshipReady = true;
 };
 spaceshipImage.src = "images/spaceship.gif";
+
+var laser = {
+    speed: 500,
+    x: -1000,
+    y: 0,
+    rechargeCountdown: 0,
+    rechargeCost: 1
+}
 
 // Handle keyboard controls
 var keysDown = {};
@@ -85,16 +93,38 @@ var render = function () {
 	if (spaceshipReady) {
 	    ctx.drawImage(spaceshipImage, spaceship.x, spaceship.y);
 	}
+
+    // Laser
+	ctx.beginPath();
+	ctx.moveTo(laser.x, laser.y);
+	ctx.lineTo(laser.x + 50, laser.y + 50);
+	ctx.lineTo(laser.x + 45, laser.y + 50);
+	ctx.lineTo(laser.x - 5, laser.y);
+	ctx.closePath();
+	ctx.strokeStyle = "green";
+	ctx.lineWidth = 2;
+	ctx.stroke();
 };
 
 var update = function(modifier) {
-	scrollx += modifier;
+	scrollx += modifier * 50;
     //console.log("x: " + scrollx);
 	spaceship.y += ((40 in keysDown) - (38 in keysDown)) * spaceship.speed * modifier;
 	if (spaceship.y < 0)
 	    spaceship.y = 0;
 	else if (spaceship.y > canvas.height - 150)
 	    spaceship.y = canvas.height - 150;
+
+	if (laser.rechargeCountdown <= 0 && (32 in keysDown)) {
+	    laser.x = spaceship.x + 50;
+	    laser.y = spaceship.y + 87;
+	    laser.rechargeCountdown = laser.rechargeCost;
+	}
+	if (laser.rechargeCountdown > 0) {
+	    laser.rechargeCountdown -= modifier;
+	    laser.x += laser.speed * modifier;
+	    laser.y += laser.speed * modifier;
+	}
 }
 
 // The main game loop
@@ -102,7 +132,7 @@ var main = function () {
 	var now = Date.now();
 	var delta = now - then;
 
-	update(delta / 1000 * 50);
+	update(delta / 1000);
 	render();
 
 	then = now;
