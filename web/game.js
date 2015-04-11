@@ -37,9 +37,14 @@ TURRET_BASELINE = 10
 TURRET_PROBABILITY = 0.01
 MIN_TURRET_DISTANCE = 150
 MAX_TURRETS = 20
+CANNON_LENGTH = 20
 
-AIM_X = 500
-AIM_Y = 500
+MISSILE_LENGTH = 30
+MISSILE_PROB = 0.001
+MISSILE_SPEED = 3
+MISSILE_RECHARGE = 50
+MISSILE_ALPHA = 0.02
+MISSILE_TTL = -200
 
 height = {}
 turrets = [500]
@@ -63,8 +68,26 @@ var can_shoot = function(turret) {
 var update_missiles = function() {
 	for(i = 0; i < missiles.length; i++) {
 		missiles[i].recharge -= 1;
-		missiles[i].x += missiles[i].dx;
-		missiles[i].y += missiles[i].dy;
+		missiles[i].x += missiles[i].dx * MISSILE_SPEED;
+		missiles[i].y += missiles[i].dy * MISSILE_SPEED;
+		if (missiles[i].y < 0 || missiles[i].recharge < MISSILE_TTL) {
+			missiles.splice(i, 1);
+			i--;
+			continue;
+		}
+
+		dx = spaceship.x + SPACESHIP_WIDTH / 2 - (missiles[i].x - scrollx);
+		dy = spaceship.y + SPACESHIP_HEIGHT / 2 - missiles[i].y;
+		//if (dx > 0) dx = 0;
+		len = Math.sqrt(dx*dx+dy*dy);
+		dx /= len;
+		dy /= len;
+		alpha = MISSILE_ALPHA;
+		if (missiles[i].recharge == MISSILE_RECHARGE - 1) {
+			alpha = 1;
+		}
+		missiles[i].dx += (dx - missiles[i].dx) * alpha;
+		missiles[i].dy += (dy - missiles[i].dy) * alpha;
 	}
 }
 
@@ -75,16 +98,18 @@ var update_turrets = function() {
 	}
 
 	// Randomize turret shots
-	for(i = 0; i < turrets.length; i++) {
+	for(var i = 0; i < turrets.length; i++) {
 		if (can_shoot(turrets[i])) {
-			if (Math.random() < 0.05) {
-//				console.log("shoot " + turrets[i]);
-				missiles.splice(missiles.length, 0, {
+			if (Math.random() < MISSILE_PROB) {
+				var missile = {
 					turret: turrets[i],
-					recharge: 50,
+					recharge: MISSILE_RECHARGE,
 					x: turrets[i],
-					y: get_ground_height(turrets[i])
-				});
+					y: get_ground_height(turrets[i]),
+					dx: 0,
+					dy: -1
+				};
+				missiles.push(missile);
 			}
 		}
 	}
@@ -106,6 +131,7 @@ var spaceship = {
     y: 0
 }
 SPACESHIP_HEIGHT = 150;
+SPACESHIP_WIDTH = 130;
 
 var spaceshipReady = false;
 var spaceshipImage = new Image();
@@ -152,9 +178,17 @@ var draw_turret = function(x, y) {
 	ctx.fillStyle=gradient;
 	ctx.fill();
 
+
+	dx = spaceship.x + SPACESHIP_WIDTH / 2 - x;
+	dy = spaceship.y + SPACESHIP_HEIGHT / 2 - y;
+	len = Math.sqrt(dx*dx+dy*dy);
+	dx /= len;
+	dy /= len;
+
 	ctx.beginPath();
+
 	ctx.moveTo(x, y - TURRET_HEIGHT);
-	ctx.lineTo(x, y - TURRET_HEIGHT - 20);
+	ctx.lineTo(x + dx * CANNON_LENGTH, y - TURRET_HEIGHT + dy * CANNON_LENGTH);
 	ctx.closePath();
 	ctx.strokeStyle = "red";
 	ctx.stroke();
@@ -229,12 +263,24 @@ var render = function () {
 	if (explosion.object != null) {
 	    ctx.drawImage(explosionImage, explosion.object.x, explosion.object.y);
 	}
+
+	for(i=0;i<missiles.length;i++) {
+		m = missiles[i];
+		ctx.beginPath();
+		ctx.moveTo(m.x - scrollx, m.y)
+		ctx.lineTo(m.x - scrollx + m.dx * MISSILE_LENGTH, m.y + m.dy * MISSILE_LENGTH);
+		ctx.strokeStyle = "red";
+		ctx.lineWidth = 3;
+		ctx.stroke();
+	}
 };
 
 var update = function(modifier) {
 	scrollx += 50 * modifier;
     //console.log("x: " + scrollx);
 	spaceship.y += ((40 in keysDown) - (38 in keysDown)) * spaceship.speed * modifier;
+	spaceship.x += ((39 in keysDown) - (37 in keysDown)) * spaceship.speed * modifier;
+
 
     update_turrets();
     update_missiles();
@@ -243,6 +289,11 @@ var update = function(modifier) {
 	    spaceship.y = 0;
 	else if (spaceship.y > canvas.height - 150)
 	    spaceship.y = canvas.height - 150;
+	if (spaceship.x < 20) {
+		spaceship.x = 20;
+	} else if (spaceship.x > canvas.width / 3) {
+		spaceship.x = canvas.width / 3;
+	}
 
 	if (spaceship.y > get_ground_height(spaceship.x + scrollx) - 150) {
 	    explode(spaceship);
