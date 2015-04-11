@@ -40,11 +40,11 @@ MAX_TURRETS = 20
 CANNON_LENGTH = 20
 
 MISSILE_LENGTH = 30
-MISSILE_PROB = 0.001
+MISSILE_PROB = 0.01
 MISSILE_SPEED = 3
-MISSILE_RECHARGE = 50
+MISSILE_RECHARGE = 150
 MISSILE_ALPHA = 0.02
-MISSILE_TTL = -200
+MISSILE_TTL = -150
 
 height = {}
 turrets = [500]
@@ -78,7 +78,11 @@ var update_missiles = function() {
 
 		dx = spaceship.x + SPACESHIP_WIDTH / 2 - (missiles[i].x - scrollx);
 		dy = spaceship.y + SPACESHIP_HEIGHT / 2 - missiles[i].y;
-		//if (dx > 0) dx = 0;
+
+		if (Math.abs(dx) < SPACESHIP_WIDTH * 0.4 && Math.abs(dy) < SPACESHIP_HEIGHT * 0.4) {
+			explode(spaceship);
+		}
+
 		len = Math.sqrt(dx*dx+dy*dy);
 		dx /= len;
 		dy /= len;
@@ -99,6 +103,14 @@ var update_turrets = function() {
 
 	// Randomize turret shots
 	for(var i = 0; i < turrets.length; i++) {
+		dx = laser.x - (turrets[i] - scrollx);
+		dy = laser.y - get_ground_height(turrets[i]);
+		if (Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+			turrets.splice(i, 1);
+			i--;
+			continue;
+		}
+
 		if (can_shoot(turrets[i])) {
 			if (Math.random() < MISSILE_PROB) {
 				var missile = {
@@ -291,8 +303,8 @@ var update = function(modifier) {
 	    spaceship.y = canvas.height - 150;
 	if (spaceship.x < 20) {
 		spaceship.x = 20;
-	} else if (spaceship.x > canvas.width / 3) {
-		spaceship.x = canvas.width / 3;
+	} else if (spaceship.x > canvas.width *0.7) {
+		spaceship.x = canvas.width *0.7;
 	}
 
 	if (spaceship.y > get_ground_height(spaceship.x + scrollx) - 150) {
