@@ -124,6 +124,7 @@ var laser = {
 
 var explosion = {
     object: null,
+    countdown: 0
 }
 
 // Handle keyboard controls
@@ -167,7 +168,8 @@ var get_ground_height = function(x) {
 	return y;
 }
 
-var explode = function(obj) {
+var explode = function (obj) {
+    explosion.countdown = 0.5;
     explosion.object = obj;
 }
 
@@ -224,10 +226,8 @@ var render = function () {
 	ctx.stroke();
 
     // Explosion
-	if (explosion.object == null) { }
-	else {
+	if (explosion.object != null) {
 	    ctx.drawImage(explosionImage, explosion.object.x, explosion.object.y);
-	    explosion.object = null;
 	}
 };
 
@@ -257,6 +257,15 @@ var update = function(modifier) {
 	    laser.rechargeCountdown -= modifier;
 	    laser.x += laser.speed * modifier;
 	    laser.y += laser.speed * modifier;
+	}
+
+	if (explosion.countdown > 0) {
+	    explosion.countdown -= modifier;
+	} else {
+	    if (explosion.object == spaceship) {
+            alert("Game Over!")
+	    }
+	    explosion.object = null;
 	}
 }
 
