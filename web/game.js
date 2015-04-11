@@ -35,7 +35,9 @@ AIM_X = 500
 AIM_Y = 500
 
 height = {}
-turrets = []
+turrets = [500]
+var missiles = [];
+
 
 var get_height = function(x) {
 	if (height[x]) return height[x];
@@ -43,11 +45,41 @@ var get_height = function(x) {
 	return height[x]
 }
 
+var can_shoot = function(turret) {
+	for(i = 0; i < missiles.length; i++) {
+		if (missiles[i].turret == turret && missiles[i].recharge > 0)
+			return false;
+	}
+	return true;
+}
+
+var update_missiles = function() {
+	for(i = 0; i < missiles.length; i++) {
+		missiles[i].recharge -= 1;
+		missiles[i].x += missiles[i].dx;
+		missiles[i].y += missiles[i].dy;
+	}
+}
+
 var update_turrets = function() {
-	console.log(turrets);
 	// Any turret that's out of picture?
 	while (turrets.length > 0 && turrets[0] < scrollx) {
 		turrets.splice(0, 1);
+	}
+
+	// Randomize turret shots
+	for(i = 0; i < turrets.length; i++) {
+		if (can_shoot(turrets[i])) {
+			if (Math.random() < 0.05) {
+//				console.log("shoot " + turrets[i]);
+				missiles.splice(missiles.length, 0, {
+					turret: turrets[i],
+					recharge: 50,
+					x: turrets[i],
+					y: get_ground_height(turrets[i])
+				});
+			}
+		}
 	}
 
 	if (turrets.length > 0 && turrets[turrets.length-1] + MIN_TURRET_DISTANCE > scrollx + canvas.width) {
@@ -117,6 +149,13 @@ var draw_turret = function(x, y) {
 
 }
 
+var get_ground_height = function(x) {
+	x1 = Math.floor(x / BLOCK_SIZE) * BLOCK_SIZE;
+	x2 = Math.floor(x / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE;
+	y = (get_height(x2) - get_height(x1)) * (x - x1) / BLOCK_SIZE + get_height(x1);
+	return y;
+}
+
 // Draw everything
 var render = function () {
 	if (bgReady) {
@@ -129,8 +168,6 @@ var render = function () {
 
 	for (x = adj; x <= canvas.width + adj + BLOCK_SIZE*2; x += BLOCK_SIZE) {
 		ctx.lineTo(x - scrollx, get_height(x))
-
-//		ctx.quadraticCurveTo(x - scrollx - BLOCK_SIZE / 2, (get_height(x) + get_height(x - BLOCK_SIZE)) * 0.8, x - scrollx, get_height(x))
 	}
 
 	ctx.lineTo(canvas.width + adj + BLOCK_SIZE*2 - scrollx, canvas.height);
@@ -154,11 +191,11 @@ var render = function () {
 
     //  Turrets
 	for(i = 0; i < turrets.length; i++) {
-	    x1 = Math.floor(turrets[i] / BLOCK_SIZE) * BLOCK_SIZE;
-	    x2 = Math.floor(turrets[i] / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE;
-	    y = (get_height(x2) - get_height(x1)) * (turrets[i] - x1) / BLOCK_SIZE + get_height(x1);
+		y = get_ground_height(turrets[i])
 	    draw_turret(turrets[i] - scrollx, y + TURRET_BASELINE);
 	}
+
+
 
     // Laser
 	ctx.beginPath();
@@ -178,6 +215,7 @@ var update = function(modifier) {
 	spaceship.y += ((40 in keysDown) - (38 in keysDown)) * spaceship.speed * modifier;
 
     update_turrets();
+    update_missiles();
 
 	if (spaceship.y < 0)
 	    spaceship.y = 0;
