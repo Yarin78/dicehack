@@ -25,6 +25,32 @@ var get_height = function(x) {
 	return height[x]
 }
 
+// Game objects
+var spaceship = {
+    speed: 256, // vertical movement speed
+    x: 20,
+    y: 0
+}
+SPACESHIP_HEIGHT = 150;
+
+var spaceshipReady = false;
+var spaceshipImage = new Image();
+spaceshipImage.onload = function () {
+    spaceshipReady = true;
+};
+spaceshipImage.src = "images/spaceship.gif";
+
+// Handle keyboard controls
+var keysDown = {};
+
+addEventListener("keydown", function (e) {
+    keysDown[e.keyCode] = true;
+}, false);
+
+addEventListener("keyup", function (e) {
+    delete keysDown[e.keyCode];
+}, false);
+
 // Draw everything
 var render = function () {
 	if (bgReady) {
@@ -54,11 +80,21 @@ var render = function () {
 	ctx.strokeStyle="green";
 	ctx.lineWidth=2;
 	ctx.stroke();
+
+    // Space ship
+	if (spaceshipReady) {
+	    ctx.drawImage(spaceshipImage, spaceship.x, spaceship.y);
+	}
 };
 
 var update = function(modifier) {
 	scrollx += modifier;
-	//console.log("x: " + scrollx);
+    //console.log("x: " + scrollx);
+	spaceship.y += ((40 in keysDown) - (38 in keysDown)) * 4 * modifier;
+	if (spaceship.y < 0)
+	    spaceship.y = 0;
+	else if (spaceship.y > canvas.height - 150)
+	    spaceship.y = canvas.height - 150;
 }
 
 // The main game loop
